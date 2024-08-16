@@ -7,6 +7,7 @@
 
 from dotenv import load_dotenv
 import os
+from datetime import datetime
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 
@@ -24,6 +25,7 @@ nltk.download('stopwords')
 nltk.download('punkt')
 nltk.download('wordnet')
 
+today4log = datetime.today().strftime('%Y%m%d') # 로그용 날짜 변수
 
 # DB 연결 - Cluster : NewsAPi-cluster, Database : newsDB, Collection : news
 load_dotenv()
@@ -32,12 +34,12 @@ client = MongoClient(mongodb)
 
 # 데이터베이스 및 컬렉션 선택
 db = client['newsDB']
-news_collection = db['news']
+news_collection_backup = db['news_backup']
 
-embed_translate = pd.DataFrame(list(news_collection.find({'title_trans': ''})))
+embed_translate = pd.DataFrame(list(news_collection_backup.find({'embedding': ''})))
 
 print(f'임베딩 생성이 필요한 데이터: {len(embed_translate)}')
-print('#################### 데이터 조회 완료 ####################')
+print(f'#################### {today4log} 데이터 조회 완료 ####################')
 
 # title 전처리
 preprocessed_title = []
@@ -53,12 +55,12 @@ for i in embed_translate['title']:
             if len(word) > 2: # 단어 길이가 2이하인 단어 삭제
                 result.append(word)
     preprocessed_title.append(result)
-print('#################### 데이터 전처리 완료 ####################')
+print(f'#################### {today4log} 데이터 전처리 완료 ####################')
 
 # 구글의 사전 학습 Word2Vec 모델 사용
 # 모델 로드하면 RAM 사용량 5.7GB까지 상승, 모델 로드 약 1~2분
 word2vec_model = gensim.models.KeyedVectors.load_word2vec_format('GoogleNews-vectors-negative300.bin.gz', binary=True)
-print('#################### 모델 로드 완료 ####################')
+print(f'#################### {today4log} 모델 로드 완료 ####################')
 
 # 임베딩 함수
 def get_document_vectors(document_list):
@@ -95,36 +97,54 @@ def get_document_vectors(document_list):
 document_embedding_list = get_document_vectors(preprocessed_title)
 embed_translate['embedding'] = document_embedding_list
 print('문서 벡터의 수 :',len(document_embedding_list))
-print('#################### 데이터 임베딩 완료 ####################')
+print(f'#################### {today4log} 데이터 임베딩 완료 ####################')
 
 for idx in embed_translate._id:
     val = embed_translate[embed_translate['_id'] == idx]['embedding'].to_list()[0].tolist()
-    news_collection.update_one({'_id': idx}, {'$set': {'embedding': val}})
-print('#################### 임베딩 DB 저장 완료 ####################')
+    news_collection_backup.update_one({'_id': idx}, {'$set': {'embedding': val}})
+print(f'#################### {today4log} 임베딩 DB 저장 완료 ####################')
 
+
+news_collection = db['news']
+news_collection_need2trans = db['news_need2trans']
 
 # googletrans 번역기 설정
 translator = Translator()
 
 def translate_article(article):
     try:
+        # 번역
         title_trans = translator.translate(article['title'], src='en', dest='ko').text
         article_trans = translator.translate(article['article'], src='en', dest='ko').text
-
-        news_collection.update_one(
+        
+        # backup에 업데이트
+        article['title_trans'] = title_trans
+        article['article_trans'] = article_trans
+        news_collection_backup.update_one(
             {'_id': article['_id']},
             {'$set': {'title_trans': title_trans, 'article_trans': article_trans}}
         )
+
+        # news에 저장
+        news_collection.insert_one(article)
+
         # print(f"Article with ID {article['_id']} translated and updated successfully.")
     except Exception as e:
         print(f"Error translating article with ID {article['_id']}: {e}")
+        
+        # need2trans에 저장
+        news_collection_need2trans.insert_one(article)
+
+        # backup에서 삭제
+        news_collection_backup.delete_one({'_id': article['_id']})
+        
 
 def translate_main():
     # 공백인 데이터 가져오기
-    articles = news_collection.find({'title_trans': '', 'article_trans': ''})
+    articles = news_collection_backup.find({'title_trans': '', 'article_trans': ''})
 
     for article in articles:
         translate_article(article)
 
 translate_main()
-print('#################### 번역 DB 저장 완료 ####################')
+print(f'#################### {today4log} 번역 DB 저장 완료 ####################')

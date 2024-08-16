@@ -31,6 +31,7 @@ cats_sub = ['finace', 'life_sciences', 'manufacturing',
 # 1일 간격으로 수집
 today = datetime.now().strftime('%Y%m%dT%H%M')
 yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y%m%dT%H%M')
+today4log = datetime.today().strftime('%Y%m%d') # 로그용 날짜 변수
 
 temp = {}
 for cat in cats_sub:
@@ -46,7 +47,7 @@ news_df.reset_index(drop=True, inplace=True)
 news_df = news_df.rename(columns = {'time_published': 'publishedAt', 'authors': 'author', 'banner_image': 'urlToImage'})
 # author 자료형 변경 list -> str
 news_df['author'] = news_df['author'].apply(lambda x: ','.join(x))
-print('#################### Alpha Vantage API 데이터 조회 완료 ####################')
+print(f'#################### {today4log} Alpha Vantage API 데이터 조회 완료 ####################')
 
 # 원문 추출
 # 300개 기준 3분정도
@@ -62,7 +63,7 @@ for i, url in enumerate(news_df['url']):
         pass
 news_art = pd.concat([news_df, pd.Series(article_list, name = 'article')], axis = 1)
 news_fin = news_art[news_art['article'] != ''].reset_index(drop=True)
-print('#################### 원문 추출 완료 ####################')
+print(f'#################### {today4log} 원문 추출 완료 ####################')
 
 # DB 연결 - Cluster : NewsAPi-cluster, Database : newsDB, Collection : news
 client = MongoClient(mongodb)
@@ -70,8 +71,8 @@ client = MongoClient(mongodb)
 # 데이터베이스 선택
 db = client['newsDB']
 
-# 컬렉션 선택
-news_collection = db['news']
+# 컬렉션 선택(백업 컬렉션에 저장)
+news_collection_backup = db['news_backup']
 
 query = []
 for i in range(len(news_fin)):
@@ -90,5 +91,5 @@ for i in range(len(news_fin)):
     query.append(temp_dic)
 
 # 삽입
-result = news_collection.insert_many(query)
-print('#################### news 정보 DB 저장 완료 ####################')
+result = news_collection_backup.insert_many(query)
+print(f'#################### {today4log} news 정보 DB 저장 완료 ####################')
