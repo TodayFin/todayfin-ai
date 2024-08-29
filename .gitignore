@@ -2,3 +2,6 @@
 todayfin/
 GoogleNews-vectors-negative300.bin.gz
 .DS_Store
+playground.ipynb
+__pycache__
+ktb_test_key.pem
