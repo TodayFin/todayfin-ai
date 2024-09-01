@@ -25,7 +25,8 @@ mongodb = os.getenv('MONGODB')
 #         'real_estate', 'retail_wholesale', 'technology']
 
 # 토픽이 너무 디테일해서 일단 간단한 토픽만 수집
-cats_sub = ['finace', 'life_sciences', 'manufacturing',
+# 20240902 finace 삭제, finance 수집
+cats_sub = ['finance', 'life_sciences', 'manufacturing',
         'real_estate', 'retail_wholesale', 'technology']
 
 # 1일 간격으로 수집
