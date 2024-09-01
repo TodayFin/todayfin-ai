@@ -108,6 +108,9 @@ news_total['category'] = pd.Categorical(news_total['category'], categories=order
 news_total['source'] = pd.Categorical(news_total['source'], categories=order_source, ordered=True)
 news_total = pd.get_dummies(news_total, columns=['category', 'source'])
 
+# news 시간순 정렬
+news_sorted = news_total.sort_values(by = ['timediff'])
+
 # API
 @app.post("/recommend/")
 async def top5_recommendation(user_id: UserId):
@@ -116,11 +119,27 @@ async def top5_recommendation(user_id: UserId):
     - 최신 기사 고려 -> timediff
     - 선호 카테고리 고려 -> category onehot
     - 유저가 가장 많이 읽은 신문사 고려 -> source onehot
-    - 유저 로그가 없을 때 -> 선호 카테고리 기반 추천
+    - 유저 로그가 없을 때 -> 선호 카테고리 별 가장 최신 기사 추천
     - 유저 로그의 중복 데이터 처리 -> backend
     '''
     user_data = search_data(user_id = user_id.id)
-    user_log, user_cat = ast.literal_eval(user_data['log']), ast.literal_eval(user_data['category'])
+
+    user_log = user_data.get('log')
+    if user_log is None:
+        user_log = []
+    else:
+        user_log = ast.literal_eval(user_log)
+
+    user_cat = ast.literal_eval(user_data['category'])
+    
+    # 로그 없는 신규 유저
+    if len(user_log) == 0 :
+        result = []
+        for cat in user_cat:
+            result += news_sorted[news_sorted[f'category_{cat}'] == True]['_id'][:2].to_list()
+        result = list(map(str,result))
+        return {'recommend': result[:5]}
+    
     news_id = [ObjectId(x) for x in user_log]
     
     read = pd.DataFrame(news_collection.find({'_id': {'$in': news_id}}))
