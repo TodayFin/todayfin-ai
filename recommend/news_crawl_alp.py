@@ -34,6 +34,10 @@ today = datetime.now().strftime('%Y%m%dT%H%M')
 yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y%m%dT%H%M')
 today4log = datetime.today().strftime('%Y%m%d') # 로그용 날짜 변수
 
+# 수동으로 날짜 지정
+# today = "20240907T0000"
+# yesterday = "20240906T0000"
+
 temp = {}
 for cat in cats_sub:
     url = f'https://www.alphavantage.co/query?function=NEWS_SENTIMENT&&apikey={apikey}&time_from={yesterday}&time_to={today}&topics={cat}'
@@ -65,6 +69,11 @@ for i, url in enumerate(news_df['url']):
 news_art = pd.concat([news_df, pd.Series(article_list, name = 'article')], axis = 1)
 news_fin = news_art[news_art['article'] != ''].reset_index(drop=True)
 print(f'#################### {today4log} 원문 추출 완료 ####################')
+
+# 중복 제거 (title 기준)
+news_fin_deduped = news_fin.drop_duplicates(subset=['title'], keep='first')
+removed_count = len(news_fin) - len(news_fin_deduped)
+print(f'#################### {today4log} 중복 데이터 {removed_count}개 제거 완료 ####################')
 
 # DB 연결 - Cluster : NewsAPi-cluster, Database : newsDB, Collection : news
 client = MongoClient(mongodb)
