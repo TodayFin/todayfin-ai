@@ -194,6 +194,10 @@ async def top5_recommendation(user_id: UserId):
     user_vec = np.append(user_vec, user_timediff)
     # source onehot encoding
     user_source_onehot = [0] * len(source_dic)
+    # 사용자의 source 처리
+    source_major = ['Benzinga', 'Zacks Commentary', 'Business Standard', 'Motley Fool', 'GlobeNewswire']
+    if user_source not in source_major:
+        user_source = 'etc'
     user_source_onehot[source_dic[user_source]] = 1
     user_vec = np.append(user_vec, user_source_onehot)
     
