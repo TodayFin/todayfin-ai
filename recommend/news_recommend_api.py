@@ -181,6 +181,7 @@ async def top5_recommendation(user_id: UserId):
     read = pd.DataFrame(news_collection.find({'_id': {'$in': news_id}}))
     read['embedding'] = read['embedding'].apply(np.array)
     user_source = read['source'].mode().values[0]
+    news_total['_id_str'] = news_total['_id'].astype(str)
     
     # user embedding
     user_vec = read['embedding'].sum() / len(user_log)
@@ -201,8 +202,8 @@ async def top5_recommendation(user_id: UserId):
     user_source_onehot[source_dic[user_source]] = 1
     user_vec = np.append(user_vec, user_source_onehot)
     
-    notread = news_total[~news_total['_id'].isin(user_log)]
-
+    notread = news_total[~news_total['_id_str'].isin(user_log)]
+    notread = notread.drop('_id_str', axis=1)
     notread['cos_sim'] = cosine_similarity(user_vec.reshape(1,-1), notread.iloc[:,1:].to_numpy())[0]
     notread = notread.sort_values(by='cos_sim', ascending=False)
     
