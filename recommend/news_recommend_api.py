@@ -173,8 +173,25 @@ async def top5_recommendation(user_id: UserId):
         result = []
         for cat in user_cat:
             result += news_sorted[news_sorted[f'category_{cat}'] == True]['_id'][:2].to_list()
-        result = list(map(str, result))
-        return {'recommend': result[:5]}
+        # result = list(map(str, result))
+        documents = pd.DataFrame(news_collection.find({"_id": {"$in": result[:5]}}))
+        result_df = documents[['_id', 'title', 'publishedAt', 'urlToImage']].copy()
+        # ObjectId를 문자열로 변환
+        result_df['_id'] = result_df['_id'].astype(str)
+        
+        # 날짜 형식 변환 (ISO 형식 문자열로 변환)
+        # result_df['publishedAt'] = result_df['publishedAt'].dt.isoformat()
+        
+        # 컬럼 이름 변경
+        result_df = result_df.rename(columns={
+            '_id': 'id',
+            'publishedAt': 'date',
+            'urlToImage': 'image'
+        })
+        
+        # DataFrame을 딕셔너리 리스트로 변환
+        result_list = result_df.to_dict('records')
+        return {'recommend': result_list}
     
     news_id = [ObjectId(x) for x in user_log]
     
