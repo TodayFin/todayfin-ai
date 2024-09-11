@@ -207,7 +207,25 @@ async def top5_recommendation(user_id: UserId):
     notread['cos_sim'] = cosine_similarity(user_vec.reshape(1,-1), notread.iloc[:,1:].to_numpy())[0]
     notread = notread.sort_values(by='cos_sim', ascending=False)
     
-    result = list(map(str, notread['_id'][:5].to_list()))
+    # result = list(map(str, notread['_id'][:5].to_list()))
+    documents = pd.DataFrame(news_collection.find({"_id": {"$in": notread['_id'][:5].to_list()}}))
+    result_df = documents[['_id', 'title', 'publishedAt', 'urlToImage']].copy()
+    # ObjectId를 문자열로 변환
+    result_df['_id'] = result_df['_id'].astype(str)
+    
+    # 날짜 형식 변환 (ISO 형식 문자열로 변환)
+    # result_df['publishedAt'] = result_df['publishedAt'].dt.isoformat()
+    
+    # 컬럼 이름 변경
+    result_df = result_df.rename(columns={
+        '_id': 'id',
+        'publishedAt': 'date',
+        'urlToImage': 'image'
+    })
+    
+    # DataFrame을 딕셔너리 리스트로 변환
+    result_list = result_df.to_dict('records')
+
     score = notread['cos_sim'][:5].to_list()
     print(f'user_id: {user_id.id} \n추천 기사와의 유사도: {score}')  # log에 성능 출력용
-    return {'recommend': result}
+    return {'recommend': result_list}
