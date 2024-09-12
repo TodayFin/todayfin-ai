@@ -185,7 +185,7 @@ async def top5_recommendation(user_id: UserId):
         # 컬럼 이름 변경
         result_df = result_df.rename(columns={
             '_id': 'id',
-            'title_tran': 'title',
+            'title_trans': 'title',
             'publishedAt': 'date',
             'urlToImage': 'image'
         })
