@@ -175,7 +175,7 @@ async def top5_recommendation(user_id: UserId):
             result += news_sorted[news_sorted[f'category_{cat}'] == True]['_id'][:2].to_list()
         # result = list(map(str, result))
         documents = pd.DataFrame(news_collection.find({"_id": {"$in": result[:5]}}))
-        result_df = documents[['_id', 'title', 'publishedAt', 'urlToImage']].copy()
+        result_df = documents[['_id', 'title_trans', 'publishedAt', 'urlToImage']].copy()
         # ObjectId를 문자열로 변환
         result_df['_id'] = result_df['_id'].astype(str)
         
@@ -185,6 +185,7 @@ async def top5_recommendation(user_id: UserId):
         # 컬럼 이름 변경
         result_df = result_df.rename(columns={
             '_id': 'id',
+            'title_tran': 'title',
             'publishedAt': 'date',
             'urlToImage': 'image'
         })
@@ -226,7 +227,7 @@ async def top5_recommendation(user_id: UserId):
     
     # result = list(map(str, notread['_id'][:5].to_list()))
     documents = pd.DataFrame(news_collection.find({"_id": {"$in": notread['_id'][:5].to_list()}}))
-    result_df = documents[['_id', 'title', 'publishedAt', 'urlToImage']].copy()
+    result_df = documents[['_id', 'title_trans', 'publishedAt', 'urlToImage']].copy()
     # ObjectId를 문자열로 변환
     result_df['_id'] = result_df['_id'].astype(str)
     
@@ -236,6 +237,7 @@ async def top5_recommendation(user_id: UserId):
     # 컬럼 이름 변경
     result_df = result_df.rename(columns={
         '_id': 'id',
+        'title_trans':'title',
         'publishedAt': 'date',
         'urlToImage': 'image'
     })
